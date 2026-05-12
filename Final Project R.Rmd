@@ -1,0 +1,85 @@
+---
+title: "Final Project R"
+author: "Yelizaveta Nazarova"
+date: "2026-05-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, library}
+# install.packages("tidyverse")
+# install.packages("stargazer")
+library(tidyverse)
+library(stargazer)
+library(dplyr)
+
+data <- read.csv("/Users/liza/Documents/GitHub/final project eco 590/final_dataset.csv")
+```
+<h3>1st Regression </h3>
+```{r}
+ols1 = lm(close ~ temperature + humidity + cloud_cover + wind_speed, data = data) 
+summary(ols1)
+# OLS1 examines the relationship between weather variables and S&P 500 closing prices.
+# The purpose of this regression is to test whether weather conditions have a stronger relationship with stock market prices during unusually cold or hot periods.
+```
+<h3>2st Regression (with filter)</h3>
+```{r}
+extreme_data = subset(data, temperature < 0 | temperature > 25)
+
+ols2 = lm(close ~ temperature + humidity + cloud_cover + wind_speed, data = extreme_data)
+
+summary(ols2)
+# OLS2 uses a filtered dataset that only includes extreme temperature days (below 0°C or above 25°C)
+```
+<h3>3st Regression (Preffered)</h3>
+Refference: https://stats.stackexchange.com/questions/332458/how-do-you-incorporate-seasonal-differencing-into-a-regression-in-r
+```{r}
+data$month = format(as.Date(data$date), "%m")
+
+ols3 = lm(close ~ bad_weather + good_weather + factor(month), data = data) 
+summary(ols3)
+```
+
+```{r, results='asis'}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+stargazer(
+  ols1,
+  ols2,
+  ols3,
+  type = "html",
+  title = "Regression Results",
+  dep.var.caption = "",   # removes dependent variables
+  column.labels = c("OLS 1", "OLS 2", "OLS 3"),
+  covariate.labels = c(
+  "Temperature",
+  "Humidity",
+  "Cloud Cover",
+  "Wind Speed",
+  "Bad Weather",
+  "Good Weather",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
+  ),
+  out = "name.html"
+)
+```
+
+
+<h3>Interpretation of the Regression</h3>
+<strong>OLS3</strong> is my preferred regression because it controls for seasonality by including monthly fixed effects using factor(month). This allows the model to separate the effects of weather conditions from general monthly trends in the stock market. The regression examines the relationship between both bad and good weather conditions and S&P 500 closing prices while holding seasonal effects constant.
+The coefficient for bad_weather is -2.445. This means that, on average, days classified as bad weather are associated with approximately a 2.45-point decrease in S&P 500 closing prices, holding seasonal effects constant. However, the p-value for this variable is 0.478, which is greater than 0.05. Therefore, the relationship is not statistically significant, meaning there is not enough evidence to conclude that bad weather independently affects market prices after controlling for seasonality.
+The coefficient for good_weather is -2.440. This suggests that days classified as good weather are associated with approximately a 2.44-point decrease in S&P 500 closing prices on average, holding monthly effects constant. However, the p-value is 0.561, which is also greater than 0.05, so this relationship is not statistically significant either.
+Most monthly variables are statistically significant, especially from March through November. This indicates that seasonality plays an important role in explaining stock market performance. The model also has a high R-squared value of 0.8167, meaning that approximately 82% of the variation in S&P 500 closing prices is explained by the regression model.
+
